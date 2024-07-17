@@ -7,6 +7,7 @@ from helper.compute import *
 from classes.Graph import *
 import random
 import folium 
+from folium import CustomIcon
 import time
 
 listRoute = getListRoute()
@@ -17,8 +18,8 @@ listZonePair = getListZonePair()
 g = Graph()
 
 def findRawDistance(u, v):
-  XI, YI = g.stops_data[u]["Position"]
-  XD, YD = g.stops_data[v]["Position"]
+  XI, YI = g.position[u]
+  XD, YD = g.position[v]
 
   distance = 0.0
 
@@ -216,6 +217,22 @@ def getAllStop():
 def drawOnMap(res, stops):
   #Draw on maps
   m = folium.Map(location=[res["Path"][0]["lat"][0], res["Path"][0]["lng"][0]], zoom_start=13)
+  
+  stopId = res["StartStopId"]
+
+  stop = g.stops_data[stopId]
+  lat, lng = stop["Lat"], stop["Lng"]
+  folium.Marker((lat, lng), 
+                  popup=f"{stop['Name']} ({stop['StopId']})",
+                  tooltip=stop['Name']).add_to(m)
+  
+  stopId = res["EndStopId"]
+
+  stop = g.stops_data[stopId]
+  lat, lng = stop["Lat"], stop["Lng"]
+  folium.Marker((lat, lng), 
+                  popup=f"{stop['Name']} ({stop['StopId']})",
+                  tooltip=stop['Name']).add_to(m)
   # # 2561 4274
   # # 1431 476
   # # 1431 7626
@@ -228,16 +245,27 @@ def drawOnMap(res, stops):
     # Since PolyLine expects a list of points, we wrap our single point in a list
     folium.PolyLine(points, color='blue', weight=2.5, opacity=1).add_to(m)
 
-
   ## Add all stops visited to the map
   for stopId in stops:
     stop = g.stops_data[stopId]
     lat, lng = stop["Lat"], stop["Lng"]
-    folium.Marker((lat, lng), 
-                  popup=f"{stop['Name']} ({stop['StopId']})",
-                  tooltip=stop['Name']).add_to(m)
+    # folium.Marker((lat, lng), 
+    #               popup=f"{stop['Name']} ({stop['StopId']})",
+    #               tooltip=stop['Name']).add_to(m)
+    folium.CircleMarker(
+        location=(lat, lng),
+        radius=5,
+        color='black',
+        fill=True,
+        fill_color='red',
+        opacity=0.3,
+        fill_opacity=0.3,  # Set the fill opacity to make it less visible
+        popup=folium.Popup(f"{stop['Name']} ({stop['StopId']})"),
+        tooltip=stop['Name']
+    ).add_to(m)
     
   # To save the map
+  print(stops.__len__())
   m.save('map.html')
 
   # save in json to be implemented
@@ -245,21 +273,30 @@ def drawOnMap(res, stops):
 def measure_performance(test_cases):
     times_no_cache = []
     times_with_cache = []
+
+    total_stops_no_cache = 0
+    total_stops_with_cache = 0
    
     for start, end in test_cases:
         # Measure shortestPath
         start_time = time.time()
-        shortestPathA(start, end)
+        a, Estops = shortestPathA(start, end)
         end_time = time.time()
         times_no_cache.append(end_time - start_time)
+        total_stops_no_cache += len(Estops)
 
         # Measure shortestPathWithCaching
         start_time = time.time()
-        shortestPathWithCaching(start, end)
+        b, Astops = shortestPathWithCaching(start, end)
         end_time = time.time()
         times_with_cache.append(end_time - start_time)
+        total_stops_with_cache += len(Astops)
+        # print(len(Estops), len(Astops))
 
-    return times_no_cache, times_with_cache
+    average_stops_no_cache = total_stops_no_cache / len(test_cases)
+    average_stops_with_cache = total_stops_with_cache / len(test_cases)
+    
+    return times_no_cache, times_with_cache, average_stops_no_cache, average_stops_with_cache
 
 
 
@@ -267,17 +304,21 @@ if __name__ == "__main__":
   
   # 1. Build graph
   buildGraph()
+  print("DONE BUILDING GRAPH")
 
   test_cases = []
 
-  for _ in range(10000):
-    u = random.randint(1, 9999)
-    v = random.randint(1, 9999)
+  # 2. Measure performance
+  number_of_test_cases = 100
+
+  while(len(test_cases) < number_of_test_cases):
+    u = random.randint(0, 9999)
+    v = random.randint(0, 9999)
     if u == v or (u, v) in test_cases or (v, u) in test_cases or not g.stops_data[u] or not g.stops_data[v]:
       continue
     test_cases.append((u, v))
 
-  times_no_cache, times_with_cache = measure_performance(test_cases)
+  times_no_cache, times_with_cache, ave1, ave2 = measure_performance(test_cases)
 
   # Print or analyze the results
   total_no_cache = sum(times_no_cache)
@@ -290,6 +331,8 @@ if __name__ == "__main__":
 
   print(f"Average Time (No Cache): {total_no_cache}s")
   print(f"Average Time (With Cache): {total_with_cache}s")
+  print(f"Average Stops Visited (No Cache): {ave1}")
+  print(f"Average Stops Visited (With Cache): {ave2}")
 
   # 3. Print shortest path from startStop to endStop
 
@@ -297,6 +340,13 @@ if __name__ == "__main__":
   # endStop = input("Enter end stop: ")
   # startStop = int(startStop)
   # endStop = int(endStop)
-  # path, stops = shortestPathA(startStop, endStop)
+
+  # for start, end in test_cases:
+  #   path, stops = shortestPathWithCaching(start, end)
+  #   if stops.__len__() > 200 and stops.__len__() < 300:
+  #      drawOnMap(path, stops)
+  #      break
+  # path, stops = shortestPathWithCaching(startStop, endStop)
 
   # drawOnMap(path, stops)
+  

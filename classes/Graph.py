@@ -3,9 +3,8 @@ from collections import defaultdict
 from math import sqrt
 from helper.compute import convert_lnglat_to_xy
 
+
 TIME_CONSTANT = 0.2111032115910458
-
-
 
 class Graph:
 
@@ -16,7 +15,15 @@ class Graph:
         self.route_data = [tuple()] * 10000
         self.path_data = [list()] * 10000
         self.stops_data = [{}] * 10000
+        self.position = [()] * 10000
 
+    def add_edge(self, node_u, node_v, weight):
+        self.adjacency_list[node_u].append((node_v, weight))
+
+    def set_node(self, node_u, stop_data):
+        X, Y = convert_lnglat_to_xy(stop_data["Lng"], stop_data["Lat"])
+        self.stops_data[node_u] = stop_data
+        self.position[node_u] = (X, Y)
 
     def reset_graph(self):
         self.distances = [float('inf')] * 10000
@@ -25,13 +32,12 @@ class Graph:
         self.path_data = [list()] * 10000
 
 
-    def add_edge(self, node_u, node_v, weight):
-        self.adjacency_list[node_u].append((node_v, weight))
-
-
-    def set_node(self, node_u, stop_data):
-        stop_data["Position"] = convert_lnglat_to_xy(stop_data["Lng"], stop_data["Lat"])
-        self.stops_data[node_u] = stop_data
+    def heuristic(self, node, destination):
+        node_x, node_y = self.position[node]
+        dest_x, dest_y = self.position[destination]
+        if None in {node_x, node_y, dest_x, dest_y}:
+            return 0.0
+        return sqrt(((node_x - dest_x) ** 2 + (node_y - dest_y) ** 2)) * TIME_CONSTANT
 
 
     def update_edge(self, node_u, node_v, weight):
@@ -67,11 +73,11 @@ class Graph:
         priority_queue = []
         visited_stops = set()
         heapq.heappush(priority_queue, (0, source))
-        visited_stops.add(source)
+        # visited_stops.add(source)
         self.distances[source] = 0
         while priority_queue:
             current_distance, current_node = heapq.heappop(priority_queue)
-            visited_stops.add(current_node)
+            # visited_stops.add(current_node)
             if current_node == destination:  # Stop if the destination is reached
                 break
             for neighbor, weight in self.adjacency_list[current_node]:
@@ -82,23 +88,18 @@ class Graph:
         
         return list(visited_stops)
 
-    def heuristic(self, node, destination):
-        node_x, node_y = self.stops_data[node]["Position"]
-        dest_x, dest_y = self.stops_data[destination]["Position"]
-        if None in {node_x, node_y, dest_x, dest_y}:
-            return 0.0
-        return sqrt((node_x - dest_x) ** 2 + (node_y - dest_y) ** 2) * TIME_CONSTANT
+    
 
     def astar(self, source, destination):
         priority_queue = []
         visited_stops = set()
         heapq.heappush(priority_queue, (0 + self.heuristic(source, destination), 0, source))
-        visited_stops.add(source)
+        # visited_stops.add(source)
         self.distances[source] = 0
 
         while priority_queue:
             estimated_cost, current_distance, current_node = heapq.heappop(priority_queue)
-            visited_stops.add(current_node)
+            # visited_stops.add(current_node)
 
 
             if current_node == destination:  # Stop if the destination is reached
