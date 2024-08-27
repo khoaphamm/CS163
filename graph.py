@@ -237,6 +237,7 @@ def drawOnMap(res, stops):
   # # 1431 476
   # # 1431 7626
   # 7673 730
+  # 2419 4424
 
   for path in res["Path"]:
     # Directly use the lat and lng values to create a point tuple
