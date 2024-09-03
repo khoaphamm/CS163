@@ -20,10 +20,5 @@ class OSMGraph(osmium.SimpleHandler):
     
     def retrieve_edge(self, node1, node2):
         return self.edges.get((node1, node2), None)
-    
-    def getGraph(self):
-        return {
-            "nodes": self.node_locations,
-            "edges": self.edges
-        }
+
         

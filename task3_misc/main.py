@@ -68,6 +68,28 @@ test_bus_path = data[1]["tripList"][5]["edgesOfPath2"]
 test_bus_edges = []
 test_bus_nodes = set()
 
+for i in range(len(test_bus_path)):
+    u = int(test_bus_path[i][0])
+    v = int(test_bus_path[i][1])
+
+    if (u, v) in real_edges:
+        edge = real_edges[(u, v)]
+        test_bus_edges.append(edge)
+        test_bus_nodes.update(edge)
+
+# Create a subgraph with only the bus path nodes and edges
+subgraph = G.subgraph(test_bus_nodes)
+
+# Get positions for the nodes in the subgraph
+pos = nx.get_node_attributes(subgraph, 'pos')
+
+# Draw the subgraph with the bus path highlighted
+plt.figure(figsize=(12, 8))
+nx.draw(subgraph, pos, node_size=10, with_labels=False, edge_color='gray', alpha=0.2)
+nx.draw_networkx_edges(subgraph, pos, edgelist=test_bus_edges, edge_color='r', width=2)
+plt.title("Bus Path on the Map")
+plt.show()
+
 all_trips = []
 trace_trips = {} # map fron bus_edge to list of bus trips that use that edge
 edges_matrix = {}
@@ -81,9 +103,7 @@ for bus in data:
         bus_path = trip["edgesOfPath2"]
 
         for i in range(len(bus_path) - 1):
-        #for i in range(min(1, len(bus_path) - 1)):
             for j in range(i+1, len(bus_path) - 1):
-            #for j in range(i+1, min(i+2, len(bus_path))):
                 u1 = int(bus_path[i][0])
                 v1 = int(bus_path[i][1])
                 u2 = int(bus_path[j][0])
@@ -98,14 +118,14 @@ for bus in data:
                     for k in range(i + 1, j - 1):
                         u = int(bus_path[k][0])
                         v = int(bus_path[k][1])
-                        key = f"{edge1}-{edge2}"
+
+                        key = f"{edge1[2]}-{edge2[2]}"
                         edge_id = real_edges.get((u, v), None)
                         if edge_id is not None and edge_id != save_edge:
-                            if key not in edges_matrix and len(edges_matrix) < 1327214:
+                            if key not in edges_matrix:
                                 edges_matrix[key] = {}
                             cnt_trips = edges_matrix.get(key, {}).get(edge_id, 0)
-                            if(key not in edges_matrix):
-                                continue
+                        
                             edges_matrix[key][edge_id] = cnt_trips + 1
                             save_edge = edge_id
                     

@@ -5,8 +5,6 @@ from helper.fileReader import dataReader
 INPUT_FILENAME = "paths.json"
 
 
-
-
 def getListPath():
     try:
         routesGroup, filename = dataReader(INPUT_FILENAME)
